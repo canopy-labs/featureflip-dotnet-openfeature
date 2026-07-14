@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Featureflip.OpenFeature/Featureflip.OpenFeature.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Featureflip.OpenFeature.Tests/Featureflip.OpenFeature.Tests.csproj" />
+  </Folder>
+</Solution>
