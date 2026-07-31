@@ -20,6 +20,15 @@ internal sealed class FakeFeatureflipClient : IFeatureflipClient
     public Task InitializationTask { get; set; } = Task.CompletedTask;
     public bool Disposed { get; private set; }
 
+    public event EventHandler<FlagsChangedEventArgs>? FlagsChanged;
+
+    /// <summary>True while a handler is attached — lets tests assert subscribe/unsubscribe.</summary>
+    public bool HasFlagsChangedSubscriber => FlagsChanged is not null;
+
+    /// <summary>Raises FlagsChanged as the real client would, from the caller's thread.</summary>
+    public void RaiseFlagsChanged(params string[] changedKeys)
+        => FlagsChanged?.Invoke(this, new FlagsChangedEventArgs(changedKeys));
+
     public FakeFeatureflipClient(EvaluationDetail<JsonElement> detail) => _detail = detail;
     public FakeFeatureflipClient(Exception toThrow) => _throw = toThrow;
 

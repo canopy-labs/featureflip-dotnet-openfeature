@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +25,11 @@ public sealed class FeatureflipProvider : FeatureProvider
     private readonly IFeatureflipClient _client;
     private readonly bool _ownsClient;
     private readonly TimeSpan _initTimeout;
+
+    // Guards _subscribed so concurrent Initialize/Shutdown can't double-subscribe or
+    // leave a handler attached after shutdown.
+    private readonly object _subscriptionLock = new();
+    private bool _subscribed;
 
     public FeatureflipProvider(IFeatureflipClient client)
     {
@@ -63,13 +69,27 @@ public sealed class FeatureflipProvider : FeatureProvider
         if (completed == initTask)
         {
             await initTask.ConfigureAwait(false);
-            return;
         }
-        cancellationToken.ThrowIfCancellationRequested();
+        else
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        // Subscribe only after the init wait, so the initial flag load is never reported
+        // as a configuration change — OpenFeature signals that with PROVIDER_READY.
+        // Subscribing is still correct on the timeout path above: the SDK's store
+        // establishes its baseline silently on the first snapshot whenever that lands,
+        // so a load still in flight cannot raise FlagsChanged either.
+        Subscribe();
     }
 
     public override Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
+        // Unsubscribe regardless of ownership — the handler writes to this provider's
+        // event channel, so leaving it attached to a caller-owned client would keep
+        // publishing after OpenFeature has torn the provider down.
+        Unsubscribe();
+
         // Dispose only a client the provider created (the sdkKey constructor); a
         // caller-injected IFeatureflipClient is owned by the caller.
         if (_ownsClient)
@@ -77,6 +97,77 @@ public sealed class FeatureflipProvider : FeatureProvider
             _client.Dispose();
         }
         return Task.CompletedTask;
+    }
+
+    private void Subscribe()
+    {
+        lock (_subscriptionLock)
+        {
+            // Guarded: OpenFeature may re-initialize an already-initialized provider.
+            if (_subscribed)
+            {
+                return;
+            }
+            _client.FlagsChanged += OnFlagsChanged;
+            _subscribed = true;
+        }
+    }
+
+    private void Unsubscribe()
+    {
+        lock (_subscriptionLock)
+        {
+            if (!_subscribed)
+            {
+                return;
+            }
+            _client.FlagsChanged -= OnFlagsChanged;
+            _subscribed = false;
+        }
+    }
+
+    private void OnFlagsChanged(object? sender, FlagsChangedEventArgs e)
+    {
+        var payload = new ProviderEventPayload
+        {
+            Type = ProviderEventTypes.ProviderConfigurationChanged,
+            ProviderName = GetMetadata().Name,
+            FlagsChanged = e.ChangedKeys.ToList(),
+        };
+
+        // Never block in this handler. The SDK raises FlagsChanged synchronously on its
+        // polling/streaming thread, so a slow handler delays flag delivery and, on the
+        // SSE path, can stall long enough to trip the idle-connection watchdog into a
+        // reconnect.
+        //
+        // OpenFeature's event channel is bounded at a single slot
+        // (Channel.CreateBounded<object>(1), FullMode.Wait), so TryWrite fails whenever a
+        // previous payload is still waiting for the event executor to drain it. Dropping
+        // on a full channel is not an option — a consumer reading payload.FlagsChanged
+        // would silently miss those keys — so finish the write on the thread pool, where
+        // waiting for a slot costs nothing. Concurrent fallback writes may be delivered
+        // out of order; that is fine here, because each payload is an independent "these
+        // keys changed" signal rather than a delta that has to be applied in sequence.
+        if (!GetEventChannel().Writer.TryWrite(payload))
+        {
+            _ = WriteWhenSlotFreeAsync(payload);
+        }
+    }
+
+    private async Task WriteWhenSlotFreeAsync(ProviderEventPayload payload)
+    {
+        try
+        {
+            await GetEventChannel().Writer.WriteAsync(payload).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // The channel was completed while this write was queued (provider shutdown),
+            // or the write otherwise cannot land. Swallow rather than let a
+            // fire-and-forget task fault: an unobserved faulted Task raises
+            // TaskScheduler.UnobservedTaskException when it is finalized, which would
+            // surface far from here and in an unrelated part of the host.
+        }
     }
 
     public override Task<ResolutionDetails<bool>> ResolveBooleanValueAsync(

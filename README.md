@@ -53,13 +53,31 @@ it running; disposing it (or not) is up to you.
 | Wrong value type | `ERROR` | `TYPE_MISMATCH` |
 | Evaluation error | `ERROR` | `GENERAL` |
 
+### Reacting to flag changes
+
+The provider emits `PROVIDER_CONFIGURATION_CHANGED` whenever flag configuration
+changes after startup, carrying the affected flag keys:
+
+```csharp
+using OpenFeature;
+using OpenFeature.Constant;
+
+Api.Instance.AddHandler(ProviderEventTypes.ProviderConfigurationChanged, details =>
+{
+    Console.WriteLine($"flags changed: {string.Join(", ", details.FlagsChanged ?? [])}");
+});
+```
+
+A flag is reported when it is created, deleted, redefined, when a segment its
+targeting rules reference changes, or when a flag it lists as a prerequisite
+changes. The initial flag load does not fire the event — OpenFeature signals that
+with `PROVIDER_READY`.
+
 ### Limitations
 
 - **No tracking:** the .NET SDK has no custom-event API, so `Track()` is a no-op.
 - **Object flags accept objects and arrays only:** a Json flag holding a bare
   primitive resolves as `TYPE_MISMATCH`.
-- **No change events:** evaluations always reflect the latest streamed snapshot,
-  but OpenFeature change handlers do not fire on flag changes.
 
 Full documentation: https://featureflip.io/docs/integrations/openfeature/
 

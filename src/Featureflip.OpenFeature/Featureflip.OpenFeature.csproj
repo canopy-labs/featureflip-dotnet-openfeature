@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Featureflip.OpenFeature</RootNamespace>
     <PackageId>Featureflip.OpenFeature</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Description>OpenFeature provider for Featureflip (.NET server SDK)</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://featureflip.io/docs/integrations/openfeature/</PackageProjectUrl>
@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="OpenFeature" Version="2.14.0" />
-    <PackageReference Include="Featureflip.Client" Version="2.4.0" />
+    <PackageReference Include="Featureflip.Client" Version="2.6.0" />
   </ItemGroup>
 
   <ItemGroup>
