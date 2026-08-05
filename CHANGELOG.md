@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1
+
+### Fixed
+
+- `LICENSE` is now the verbatim Apache-2.0 text. Three phrases in the operative sections
+  had been reworded and the appendix dropped, which left automated license scanners unable
+  to identify it. The license itself is unchanged; the file now says what it always
+  claimed to.
+
 ## 0.2.0
 
 ### Added
