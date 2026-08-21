@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.1
+
+### Fixed
+
+- The package now ships its README, so the NuGet listing has content instead of a bare
+  dependency table. `dotnet pack` had been warning `is missing a readme` on every release
+  since 0.1.0 — the file existed at the package root the whole time, but nothing declared
+  `PackageReadmeFile` or packed it. `Featureflip.Client` gets this from
+  `packages/csharp-sdk/src/Directory.Build.props`; this project has no such file, so the
+  same two lines are declared inline.
+
+- The listing also names its publisher. `Authors`, `Company`, `RepositoryType` and
+  `Copyright` were never set on this project, so NuGet fell back to showing the assembly
+  name as the author. The values match `Featureflip.Client`'s.
+
 ## 0.3.0
 
 ### Changed
