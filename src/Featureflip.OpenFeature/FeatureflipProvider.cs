@@ -40,7 +40,7 @@ public sealed class FeatureflipProvider : FeatureProvider
 
     public FeatureflipProvider(string sdkKey, FeatureFlagOptions? options = null)
     {
-        var resolvedOptions = options ?? new FeatureFlagOptions();
+        var resolvedOptions = Identified(options ?? new FeatureFlagOptions());
         _client = FeatureflipClient.Get(sdkKey, resolvedOptions);
         _ownsClient = true;
         _initTimeout = resolvedOptions.InitTimeout;
@@ -52,6 +52,42 @@ public sealed class FeatureflipProvider : FeatureProvider
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _ownsClient = false;
         _initTimeout = initTimeout;
+    }
+
+    /// <summary>
+    /// Sent after the SDK's own token in the User-Agent by clients this provider builds
+    /// (#4148), so requests made through it can be counted apart from direct SDK use.
+    /// </summary>
+    internal const string WrapperName = "featureflip-openfeature-dotnet";
+
+    /// <summary>
+    /// This package's version, read from the assembly. publish-openfeature-dotnet.yml
+    /// rewrites the csproj &lt;Version&gt; from the release tag (#2141).
+    /// </summary>
+    internal static readonly string WrapperVersion =
+        typeof(FeatureflipProvider).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion.Split('+')[0] ?? "unknown";
+
+    /// <summary>
+    /// <paramref name="options"/> naming this provider as the SDK's wrapper. On a
+    /// shallow copy, so options the caller reuses for direct SDK clients are not
+    /// relabelled; MemberwiseClone copies every property, including ones the SDK adds
+    /// later. A wrapper the caller already set is kept: the SDK carries one, and theirs
+    /// is the more specific. A client passed to the other constructor was built before
+    /// the provider saw it, so its requests carry no provider token.
+    /// </summary>
+    private static FeatureFlagOptions Identified(FeatureFlagOptions options)
+    {
+        if (!string.IsNullOrEmpty(options.WrapperName)) return options;
+
+        var copy = (FeatureFlagOptions)typeof(object)
+            .GetMethod("MemberwiseClone", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(options, null)!;
+        copy.WrapperName = WrapperName;
+        copy.WrapperVersion = WrapperVersion;
+        return copy;
     }
 
     public override Metadata GetMetadata() => new("featureflip-dotnet");

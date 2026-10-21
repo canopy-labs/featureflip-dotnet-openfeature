@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 — 2026-10-20
+
+### Added
+
+- Requests made through the provider now identify it: `User-Agent: featureflip-csharp/<version> featureflip-openfeature-dotnet/<version>`, so Featureflip can count OpenFeature usage apart from direct SDK use. This applies when the provider builds its own client (`new FeatureflipProvider(sdkKey, options)`); it sets the wrapper on a copy of your `FeatureFlagOptions`, so the object you pass is unchanged, and a `WrapperName` you already set is kept. A client passed to `new FeatureflipProvider(client)` was built before the provider saw it, so its requests are unchanged. (#4148)
+
+### Changed
+
+- References `Featureflip.Client` 2.10.0, the release that added `FeatureFlagOptions.WrapperName`.
+
 ## 0.4.0
 
 ### Changed
