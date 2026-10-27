@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1 — 2026-10-26
+
+### Changed
+
+- Requires `Featureflip.Client` 2.12.0 or later, so the evaluation events behind every flag the provider resolves carry the evaluation reason (`rule-match`, `fallthrough`, `flag-disabled`, `prerequisite-failed`, `error` or `flag-not-found`) and the matched rule id. Featureflip's flag Analytics tab uses them to show which part of the targeting served the traffic. (#4268)
+- That SDK release also works where reflection-based `System.Text.Json` is disabled (NativeAOT, trimmed apps, .NET 10 file-based apps), and its `WaitForInitializationAsync()` now throws when the initial load fails in a way retrying can't fix. In that case `InitializeAsync` now fails and OpenFeature reports a provider error, where before it timed out and reported ready while serving defaults. Transient failures still time out and report ready as before. (#4301)
+
 ## 0.5.0 — 2026-10-20
 
 ### Added
