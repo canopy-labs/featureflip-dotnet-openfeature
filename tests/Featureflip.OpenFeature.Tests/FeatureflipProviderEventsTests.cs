@@ -38,7 +38,7 @@ public class FeatureflipProviderEventsTests
     {
         var client = Client();
         var provider = new FeatureflipProvider(client);
-        await provider.InitializeAsync(EvaluationContext.Empty);
+        await provider.InitializeAsync(EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         client.RaiseFlagsChanged("alpha", "beta");
 
@@ -71,7 +71,7 @@ public class FeatureflipProviderEventsTests
         var client = Client();
         client.InitializationTask = new TaskCompletionSource<bool>().Task; // never completes
         var provider = new FeatureflipProvider(client, TimeSpan.FromMilliseconds(50));
-        await provider.InitializeAsync(EvaluationContext.Empty);
+        await provider.InitializeAsync(EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         client.RaiseFlagsChanged("alpha");
 
@@ -86,8 +86,8 @@ public class FeatureflipProviderEventsTests
         // subscription would emit every change twice.
         var client = Client();
         var provider = new FeatureflipProvider(client);
-        await provider.InitializeAsync(EvaluationContext.Empty);
-        await provider.InitializeAsync(EvaluationContext.Empty);
+        await provider.InitializeAsync(EvaluationContext.Empty, TestContext.Current.CancellationToken);
+        await provider.InitializeAsync(EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         client.RaiseFlagsChanged("alpha");
 
@@ -102,10 +102,10 @@ public class FeatureflipProviderEventsTests
         // outlives the provider must not keep it attached.
         var client = Client();
         var provider = new FeatureflipProvider(client);
-        await provider.InitializeAsync(EvaluationContext.Empty);
+        await provider.InitializeAsync(EvaluationContext.Empty, TestContext.Current.CancellationToken);
         Assert.True(client.HasFlagsChangedSubscriber);
 
-        await provider.ShutdownAsync();
+        await provider.ShutdownAsync(TestContext.Current.CancellationToken);
 
         Assert.False(client.HasFlagsChangedSubscriber);
         client.RaiseFlagsChanged("alpha");
@@ -120,7 +120,7 @@ public class FeatureflipProviderEventsTests
         // delivered — a consumer reading FlagsChanged would otherwise silently miss keys.
         var client = Client();
         var provider = new FeatureflipProvider(client);
-        await provider.InitializeAsync(EvaluationContext.Empty);
+        await provider.InitializeAsync(EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         client.RaiseFlagsChanged("first");   // fills the single slot
         client.RaiseFlagsChanged("second");  // slot busy -> completed off the SDK's thread
@@ -141,12 +141,12 @@ public class FeatureflipProviderEventsTests
         // promptly rather than wait for a free slot.
         var client = Client();
         var provider = new FeatureflipProvider(client);
-        await provider.InitializeAsync(EvaluationContext.Empty);
+        await provider.InitializeAsync(EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         client.RaiseFlagsChanged("first"); // fills the single slot; nothing drains it
 
-        var raise = Task.Run(() => client.RaiseFlagsChanged("second"));
-        var finished = await Task.WhenAny(raise, Task.Delay(TimeSpan.FromSeconds(5)));
+        var raise = Task.Run(() => client.RaiseFlagsChanged("second"), TestContext.Current.CancellationToken);
+        var finished = await Task.WhenAny(raise, Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
 
         Assert.Same(raise, finished);
         await raise;

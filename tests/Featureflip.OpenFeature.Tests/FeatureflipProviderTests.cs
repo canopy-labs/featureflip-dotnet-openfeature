@@ -34,7 +34,7 @@ public class FeatureflipProviderTests
         var client = new FakeFeatureflipClient(Detail(true, EvaluationReason.Fallthrough, variationKey: "true"));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveBooleanValueAsync("flag", false, EvaluationContext.Empty);
+        var result = await provider.ResolveBooleanValueAsync("flag", false, EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.True(result.Value);
         Assert.Equal(Reason.Default, result.Reason);
@@ -49,7 +49,7 @@ public class FeatureflipProviderTests
             Detail(false, EvaluationReason.RuleMatch, variationKey: "false", ruleId: "rule-1"));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveBooleanValueAsync("flag", true, EvaluationContext.Empty);
+        var result = await provider.ResolveBooleanValueAsync("flag", true, EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.False(result.Value);
         Assert.Equal(Reason.TargetingMatch, result.Reason);
@@ -63,7 +63,7 @@ public class FeatureflipProviderTests
             Detail(false, EvaluationReason.PrerequisiteFailed, variationKey: "false", prerequisiteKey: "parent"));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveBooleanValueAsync("flag", true, EvaluationContext.Empty);
+        var result = await provider.ResolveBooleanValueAsync("flag", true, EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.Equal("PREREQUISITE_FAILED", result.Reason);
         Assert.Equal("parent", result.FlagMetadata!.GetString("prerequisiteKey"));
@@ -76,7 +76,7 @@ public class FeatureflipProviderTests
             new EvaluationDetail<JsonElement>(default, EvaluationReason.FlagNotFound, null, "missing"));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveBooleanValueAsync("flag", true, EvaluationContext.Empty);
+        var result = await provider.ResolveBooleanValueAsync("flag", true, EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.True(result.Value); // caller default
         Assert.Equal(Reason.Error, result.Reason);
@@ -90,7 +90,7 @@ public class FeatureflipProviderTests
             new EvaluationDetail<JsonElement>(default, EvaluationReason.Error, null, "boom"));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveStringValueAsync("flag", "fallback", EvaluationContext.Empty);
+        var result = await provider.ResolveStringValueAsync("flag", "fallback", EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.Equal("fallback", result.Value);
         Assert.Equal(ErrorType.General, result.ErrorType);
@@ -103,7 +103,7 @@ public class FeatureflipProviderTests
         var client = new FakeFeatureflipClient(Detail("hello", EvaluationReason.Fallthrough));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveBooleanValueAsync("flag", false, EvaluationContext.Empty);
+        var result = await provider.ResolveBooleanValueAsync("flag", false, EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.False(result.Value);
         Assert.Equal(ErrorType.TypeMismatch, result.ErrorType);
@@ -115,7 +115,7 @@ public class FeatureflipProviderTests
         var client = new FakeFeatureflipClient(Detail(5.5, EvaluationReason.Fallthrough));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveIntegerValueAsync("flag", 0, EvaluationContext.Empty);
+        var result = await provider.ResolveIntegerValueAsync("flag", 0, EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.Value);
         Assert.Equal(ErrorType.TypeMismatch, result.ErrorType);
@@ -127,7 +127,7 @@ public class FeatureflipProviderTests
         var client = new FakeFeatureflipClient(Detail(3.14, EvaluationReason.Fallthrough));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveDoubleValueAsync("flag", 0d, EvaluationContext.Empty);
+        var result = await provider.ResolveDoubleValueAsync("flag", 0d, EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.Equal(3.14, result.Value);
         Assert.Equal(ErrorType.None, result.ErrorType);
@@ -139,7 +139,7 @@ public class FeatureflipProviderTests
         var client = new FakeFeatureflipClient(Detail(new { a = 1 }, EvaluationReason.Fallthrough));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveStructureValueAsync("flag", new Value(), EvaluationContext.Empty);
+        var result = await provider.ResolveStructureValueAsync("flag", new Value(), EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.True(result.Value.IsStructure);
         Assert.Equal(ErrorType.None, result.ErrorType);
@@ -151,7 +151,7 @@ public class FeatureflipProviderTests
         var client = new FakeFeatureflipClient(Detail("not-an-object", EvaluationReason.Fallthrough));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveStructureValueAsync("flag", new Value(), EvaluationContext.Empty);
+        var result = await provider.ResolveStructureValueAsync("flag", new Value(), EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.Equal(ErrorType.TypeMismatch, result.ErrorType);
     }
@@ -162,7 +162,7 @@ public class FeatureflipProviderTests
         var client = new FakeFeatureflipClient(new InvalidOperationException("kaboom"));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveBooleanValueAsync("flag", true, EvaluationContext.Empty);
+        var result = await provider.ResolveBooleanValueAsync("flag", true, EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.True(result.Value);
         Assert.Equal(ErrorType.General, result.ErrorType);
@@ -179,7 +179,7 @@ public class FeatureflipProviderTests
             .Set("plan", "enterprise")
             .Build();
 
-        await provider.ResolveBooleanValueAsync("flag", false, context);
+        await provider.ResolveBooleanValueAsync("flag", false, context, TestContext.Current.CancellationToken);
 
         Assert.NotNull(client.LastContext);
         Assert.Equal("u-123", client.LastContext!.UserId);
@@ -194,8 +194,8 @@ public class FeatureflipProviderTests
         };
         var provider = new FeatureflipProvider(client, TimeSpan.FromMilliseconds(50));
 
-        var init = provider.InitializeAsync(EvaluationContext.Empty);
-        var finished = await Task.WhenAny(init, Task.Delay(5000));
+        var init = provider.InitializeAsync(EvaluationContext.Empty, TestContext.Current.CancellationToken);
+        var finished = await Task.WhenAny(init, Task.Delay(5000, TestContext.Current.CancellationToken));
 
         Assert.Same(init, finished); // completed via the 50ms bound, did not hang
         await init;
@@ -227,7 +227,7 @@ public class FeatureflipProviderTests
             new EvaluationDetail<JsonElement>(element, EvaluationReason.Fallthrough, null, null, "v"));
         var provider = new FeatureflipProvider(client);
 
-        var result = await provider.ResolveIntegerValueAsync("flag", 0, EvaluationContext.Empty);
+        var result = await provider.ResolveIntegerValueAsync("flag", 0, EvaluationContext.Empty, TestContext.Current.CancellationToken);
 
         Assert.Equal(expected, result.Value);
         Assert.Equal(ErrorType.None, result.ErrorType);
@@ -239,7 +239,7 @@ public class FeatureflipProviderTests
         var client = new FakeFeatureflipClient(Detail(true, EvaluationReason.Fallthrough));
         var provider = new FeatureflipProvider(client);
 
-        await provider.ShutdownAsync();
+        await provider.ShutdownAsync(TestContext.Current.CancellationToken);
 
         Assert.False(client.Disposed);
     }

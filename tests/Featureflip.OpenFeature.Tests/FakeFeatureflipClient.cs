@@ -40,6 +40,7 @@ internal sealed class FakeFeatureflipClient : IFeatureflipClient
     }
 
     public bool IsInitialized => true;
+    public StartupInfo StartupInfo { get; } = new(StartupSource.Live);
     public Task WaitForInitializationAsync(CancellationToken cancellationToken = default) => InitializationTask;
 
     public T Variation<T>(string key, EvaluationContext context, T defaultValue) => throw new NotSupportedException();

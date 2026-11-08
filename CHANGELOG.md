@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.0 — 2026-11-08
+
+### Changed
+
+- Requires `Featureflip.Client` 2.14.0 or later. NuGet resolves a dependency to the lowest version that satisfies it, so until now anyone who installed only the provider got 2.12.0 and missed every SDK fix since.
+- Built-in attribute names now match exactly, as they do in the evaluation engine and every other SDK. An evaluation-context attribute is read as the user id only under `userId` or `user_id`, as the email only under `email` and as the country only under `country`. Any other casing, such as `UserId`, `Email` or `USER_ID`, is now an ordinary custom attribute. The `targetingKey` mapping is unchanged. (#4609)
+
+### Fixed
+
+- A boolean context attribute is matched as `"true"`/`"false"` by string operators, not `"True"`/`"False"`, so `MatchesRegex` agrees with server-side evaluation. (#1501)
+- A rollout whose Bucket by value is a collection (an array or a JSON object) is skipped like one with no value, so the context no longer lands in a different bucket than the evaluation engine and the other SDKs put it in. (#4572)
+
+### Added
+
+- The SDK's opt-in snapshot store works through the provider. Set `SnapshotStore` on the `FeatureFlagOptions` you pass to `new FeatureflipProvider(sdkKey, options)`, and a start that can't reach the Evaluation API loads the last saved flag configuration instead of serving defaults.
+
 ## 0.5.1 — 2026-10-26
 
 ### Changed
