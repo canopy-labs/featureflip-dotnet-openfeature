@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 — 2026-11-24
+
+### Security
+
+- Requires `Featureflip.Client` 2.14.1 or later. That release redacts the SDK key from every log line the SDK emits, including error messages from the HTTP stack and the logger you pass in, so a key quoted in a logged message, structured value or exception text comes out as `[redacted]`. (#5167)
+
 ## 0.6.0 — 2026-11-08
 
 ### Changed
